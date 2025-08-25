@@ -26,7 +26,7 @@ except Exception:
 
 # --- AI 모델 설정 ---
 # 이미지 입력을 지원하는 Gemini Pro Vision 모델을 사용합니다.
-model = genai.GenerativeModel('gemini-pro-vision')
+model = genai.GenerativeModel('gemini-2.0-flash')
 
 
 def get_gemini_response(input_prompt, person_image, clothing_image):
