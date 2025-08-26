@@ -6,10 +6,8 @@ from openai import OpenAI
 import re
 import time
 import os
-import plotly.express as px
-import plotly.graph_objects as go
-import pandas as pd
-from pytrends.request import TrendReq  # Google Trends API 라이브러리
+import pandas as pd  # 데이터 시각화를 위한 라이브러리 추가
+import plotly.express as px  # 데이터 시각화를 위한 라이브러리 추가
 
 # --- 페이지 기본 설정 ---
 st.set_page_config(
@@ -30,53 +28,7 @@ except Exception:
 llm_model = genai.GenerativeModel('gemini-1.5-flash')
 
 
-# --- ✨ (수정) 시각화용 샘플 데이터 생성 함수 추가 ---
-def generate_sample_data():
-    """쇼핑 패턴 및 만족도 차트용 샘플 데이터를 생성하는 함수"""
-    # 월별 패션 구매 패턴
-    months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
-    purchase_data = [15, 12, 25, 30, 35, 20, 18, 22, 40, 45, 38, 50]
-    # 아이템별 만족도
-    satisfaction_data = {'상의': 4.5, '하의': 4.2, '아우터': 4.7, '신발': 4.3, '액세서리': 3.9}
-    return months, purchase_data, satisfaction_data
-
-
-# --- 함수 정의 ---
-
-def recommend_size(height, weight):
-    """키와 몸무게를 기반으로 일반적인 사이즈를 추천하는 함수"""
-    bmi = weight / ((height / 100) ** 2)
-    if height < 165:
-        top_size = "S (90)"
-    elif 165 <= height < 175:
-        top_size = "M (95)" if bmi < 23 else "L (100)"
-    elif 175 <= height < 185:
-        top_size = "L (100)" if bmi < 24 else "XL (105)"
-    else:
-        top_size = "XXL (110) 이상"
-    if weight < 60:
-        bottom_size = "28-29 inch"
-    elif 60 <= weight < 70:
-        bottom_size = "30-31 inch"
-    elif 70 <= weight < 80:
-        bottom_size = "32-33 inch"
-    elif 80 <= weight < 90:
-        bottom_size = "34-36 inch"
-    else:
-        bottom_size = "37 inch 이상"
-    return {"상의": top_size, "하의": bottom_size}
-
-
-@st.cache_data(ttl=3600)  # 1시간 동안 캐시 유지
-def get_google_trends_data():
-    """Google Trends에서 패션 키워드 데이터를 가져오는 함수"""
-    pytrends = TrendReq(hl='ko-KR', tz=360)
-    keywords = ["미니멀리즘 패션", "스트릿 패션", "Y2K 패션", "고프코어"]
-    pytrends.build_payload(keywords, cat=0, timeframe='today 12-m', geo='KR', gprop='')
-    df = pytrends.interest_over_time()
-    return df.drop(columns=['isPartial']) if not df.empty else pd.DataFrame()
-
-
+# --- (이하 모든 함수 정의는 변경 없음) ---
 def save_image(directory, file):
     if not os.path.exists(directory): os.makedirs(directory)
     filename = f"capture_{int(time.time())}.jpg"
@@ -165,22 +117,26 @@ def analyze_personal_color(face_image):
 
 # --- 사이드바 내비게이션 UI ---
 st.sidebar.title("나만의 맞춤 패션 추천")
-if st.sidebar.button("🏠 메인 페이지", use_container_width=True): st.session_state.page = "main"
-if st.sidebar.button("🎨 퍼스널 컬러 분석", use_container_width=True): st.session_state.page = "personal_color"
-if st.sidebar.button("📊 패션 데이터 분석", use_container_width=True): st.session_state.page = "analytics"
-if st.sidebar.button("🔎 옷 입혀보기 AI", use_container_width=True): st.session_state.page = "vton"
+if st.sidebar.button("🏠 메인 페이지", use_container_width=True):
+    st.session_state.page = "main"
+if st.sidebar.button("🎨 퍼스널 컬러 분석", use_container_width=True):
+    st.session_state.page = "personal_color"
+if st.sidebar.button("🔎 옷 입혀보기 AI", use_container_width=True):
+    st.session_state.page = "vton"
 
 # --- 페이지 상태 초기화 ---
-if "page" not in st.session_state: st.session_state.page = "main"
-if "face_photo_object" not in st.session_state: st.session_state.face_photo_object = None
-if "user_activity_log" not in st.session_state: st.session_state.user_activity_log = []  # 사용자 활동 기록 초기화
+if "page" not in st.session_state:
+    st.session_state.page = "main"
+if "face_photo_object" not in st.session_state:
+    st.session_state.face_photo_object = None
 
 personal_color_options = ["봄 웜톤", "여름 쿨톤", "가을 웜톤", "겨울 쿨톤"]
 
 # 1. 메인 페이지
 if st.session_state.page == "main":
     st.title("👕 나의 맞춤 패션 추천")
-    tab1, tab_size, tab2, tab3 = st.tabs(["⚙️ 나의 맞춤 정보", "📏 사이즈 추천", "🧠 옷 분석하기", "✨ 코디 추천받기"])
+    # --- ✨ (수정) 탭 추가 ---
+    tab1, tab2, tab3, tab_effects = st.tabs(["⚙️ 나의 맞춤 정보", "🧠 옷 분석하기", "✨ 코디 추천받기", "📊 기대 효과"])
 
     with tab1:
         st.subheader("체형")
@@ -198,22 +154,6 @@ if st.session_state.page == "main":
             st.session_state.user_info = {"키": 키, "몸무게": 몸무게, "피부_톤": 피부_톤, "선호_스타일": 선호_스타일}
             st.session_state.키, st.session_state.몸무게, st.session_state.피부_톤, st.session_state.선호_스타일 = 키, 몸무게, 피부_톤, 선호_스타일
             st.success("정보가 저장되었습니다!")
-
-    with tab_size:
-        st.subheader("📏 AI 사이즈 추천")
-        if 'user_info' in st.session_state:
-            height = st.session_state.user_info['키']
-            weight = st.session_state.user_info['몸무게']
-            st.write(f"입력된 정보: **키 {height}cm**, **몸무게 {weight}kg**")
-
-            if st.button("내 사이즈 추천받기", use_container_width=True):
-                sizes = recommend_size(height, weight)
-                st.success("사이즈 추천이 완료되었습니다!")
-                st.markdown(f"### 추천 상의 사이즈: **{sizes['상의']}**")
-                st.markdown(f"### 추천 하의 사이즈: **{sizes['하의']}**")
-                st.info("※ 위 추천은 일반적인 체형을 기준으로 한 예시이며, 브랜드나 옷의 핏에 따라 다를 수 있습니다.")
-        else:
-            st.warning("먼저 '나의 맞춤 정보' 탭에서 정보를 저장해주세요.")
 
     with tab2:
         st.subheader("👚 분석할 옷 사진 업로드")
@@ -239,7 +179,6 @@ if st.session_state.page == "main":
                                 tags = analysis_result.get('style_tags', [])
                                 st.write(f"**스타일 태그**: {', '.join(tags) if tags else 'N/A'}")
                                 st.session_state.analysis_result = analysis_result
-                                st.session_state.user_activity_log.append(analysis_result)
                                 st.info("'코디 추천받기' 탭으로 이동하여 추천을 받아보세요!")
 
     with tab3:
@@ -251,9 +190,9 @@ if st.session_state.page == "main":
             if st.button("AI 코디 추천 및 이미지 생성", use_container_width=True):
                 situation = situation_input if situation_input else "일상적인 상황"
                 with st.spinner("AI 스타일리스트가 당신만을 위한 코디와 이미지를 만들고 있습니다... ✨"):
-                    recommendation_text, image_prompts = get_cody_recommendation_with_image(st.session_state.user_info,
-                                                                                            st.session_state.analysis_result,
-                                                                                            situation)
+                    recommendation_text, image_prompts = get_cody_recommendation_with_image(
+                        st.session_state.user_info, st.session_state.analysis_result, situation
+                    )
                 if recommendation_text:
                     st.subheader("AI 스타일리스트의 추천")
                     st.markdown(recommendation_text, unsafe_allow_html=True)
@@ -273,10 +212,67 @@ if st.session_state.page == "main":
         else:
             st.warning("먼저 '옷 분석하기'를 완료해주세요.")
 
+    # --- ✨ (신규) 기대 효과 탭 ---
+    with tab_effects:
+        st.subheader("📊 프로젝트 기대 효과 시각화")
+        st.markdown("본 AI 추천 시스템 도입 시 예상되는 **시간 및 자원 절약 효과**를 시각화한 예시입니다.")
+        st.write("---")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            # --- 1. 사용자 시간 단축 효과 (Bar Chart) ---
+            st.markdown("#### ⏰ 코디 결정 시간 단축")
+            time_data = pd.DataFrame({
+                '구분': ['앱 사용 전', '앱 사용 후'],
+                '평균 소요 시간 (분)': [20, 2]
+            })
+            st.bar_chart(time_data.set_index('구분'))
+            st.caption("AI 추천을 통해 사용자의 일일 코디 결정 시간을 평균 20분에서 2분으로 단축하는 효과를 기대할 수 있습니다.")
+
+        with col2:
+            # --- 2. 산업적 반품률 감소 효과 (Bar Chart) ---
+            st.markdown("#### 📉 쇼핑몰 반품률 감소")
+            return_data = pd.DataFrame({
+                '구분': ['일반 쇼핑몰', 'AI 추천 도입 후'],
+                '평균 반품률 (%)': [25, 10]
+            })
+            st.bar_chart(return_data.set_index('구분'), color="#ff8c00")
+            st.caption("개인화된 추천으로 구매 만족도를 높여, 패션 쇼핑몰의 평균 반품률을 25%에서 10% 수준으로 크게 낮출 수 있습니다.")
+
+        st.write("---")
+
+        # --- 3. 의류 자원 절약 효과 (Pie Chart) ---
+        st.markdown("#### 💰 '옷장 활용률' 증가로 자원 절약")
+        col3, col4 = st.columns(2)
+        with col3:
+            st.markdown("**앱 사용 전**")
+            pie_data_before = pd.DataFrame({
+                '항목': ['자주 입는 옷', '거의 입지 않는 옷'],
+                '비율': [60, 40]
+            })
+            fig_before = px.pie(pie_data_before, values='비율', names='항목', title='기존 옷장 활용률',
+                                color_discrete_sequence=['#87CEEB', '#D3D3D3'])
+            st.plotly_chart(fig_before, use_container_width=True)
+
+        with col4:
+            st.markdown("**앱 사용 후**")
+            pie_data_after = pd.DataFrame({
+                '항목': ['자주 입는 옷', '거의 입지 않는 옷'],
+                '비율': [85, 15]
+            })
+            fig_after = px.pie(pie_data_after, values='비율', names='항목', title='개선된 옷장 활용률',
+                               color_discrete_sequence=['#87CEEB', '#D3D3D3'])
+            st.plotly_chart(fig_after, use_container_width=True)
+
+        st.caption("AI 코디 추천을 통해 기존에 활용하지 못했던 옷들의 조합을 찾아내어, 실질적인 옷장 활용률을 60%에서 85%까지 끌어올려 의류 낭비를 줄이는 효과를 기대합니다.")
+
+
 # 2. 퍼스널 컬러 분석 페이지
 elif st.session_state.page == "personal_color":
+    # ... (퍼스널 컬러 분석 페이지 코드는 변경 없음) ...
     st.title("🎨 AI 퍼스널 컬러 진단")
     st.write("메이크업을 하지 않은 정면 얼굴 사진을 직접 촬영하거나 업로드해주세요.")
+    if "face_photo_object" not in st.session_state: st.session_state.face_photo_object = None
     if "show_camera" not in st.session_state: st.session_state.show_camera = False
     if st.button("사진 촬영 📸", use_container_width=True): st.session_state.show_camera = not st.session_state.show_camera
     uploaded_photo = st.file_uploader("또는 얼굴 사진 업로드 📂", type=["jpg", "jpeg", "png"])
@@ -286,10 +282,7 @@ elif st.session_state.page == "personal_color":
             st.session_state.face_photo_object = camera_photo
             st.session_state.show_camera = False
             st.rerun()
-    else:
-        camera_photo = None
     if uploaded_photo: st.session_state.face_photo_object = uploaded_photo
-    face_photo = camera_photo or uploaded_photo
     if st.session_state.face_photo_object:
         st.image(st.session_state.face_photo_object, caption="분석할 얼굴 이미지", width=300)
         col1, col2 = st.columns([3, 1])
@@ -321,69 +314,9 @@ elif st.session_state.page == "personal_color":
             if 'user_info' in st.session_state: st.session_state.user_info['피부_톤'] = st.session_state.analyzed_color
             st.success(f"'{st.session_state.피부_톤}'이 맞춤 정보에 적용되었습니다.")
 
-# 3. 패션 데이터 분석 페이지
-elif st.session_state.page == "analytics":
-    st.title("📊 패션 데이터 분석 대시보드")
-
-    st.markdown("### 📈 나의 패션 프로필 분석")
-    st.caption("'옷 분석하기' 탭에서 분석한 데이터를 기반으로 생성됩니다.")
-
-    if not st.session_state.user_activity_log:
-        st.info("아직 분석된 옷 데이터가 없습니다. '옷 분석하기'를 통해 데이터를 쌓아보세요!")
-    else:
-        all_tags = [tag for item in st.session_state.user_activity_log for tag in item.get('style_tags', [])]
-        tag_counts = pd.Series(all_tags).value_counts()
-        all_colors = [item.get('color', 'N/A') for item in st.session_state.user_activity_log]
-        color_counts = pd.Series(all_colors).value_counts()
-
-        col1, col2 = st.columns(2)
-        with col1:
-            if not tag_counts.empty:
-                fig_style = px.bar(tag_counts, y=tag_counts.index, x=tag_counts.values, orientation='h',
-                                   title="나의 스타일 선호도 분석", labels={'y': '스타일', 'x': '분석 횟수'}, color=tag_counts.values,
-                                   color_continuous_scale='viridis')
-                fig_style.update_layout(height=400, showlegend=False)
-                st.plotly_chart(fig_style, use_container_width=True)
-            else:
-                st.write("스타일 데이터가 부족합니다.")
-        with col2:
-            if not color_counts.empty:
-                fig_color = px.pie(values=color_counts.values, names=color_counts.index, title="선호하는 색상 분포",
-                                   color_discrete_sequence=px.colors.qualitative.Pastel)
-                fig_color.update_layout(height=400)
-                st.plotly_chart(fig_color, use_container_width=True)
-            else:
-                st.write("색상 데이터가 부족합니다.")
-
-    st.markdown("### 🛒 나의 쇼핑 패턴 및 만족도 (샘플)")
-    st.caption("이 부분은 실제 구매 이력 및 피드백 데이터 연동 시 구현될 수 있는 기능의 예시입니다.")
-    months, purchase_data, satisfaction_data = generate_sample_data()
-    col3, col4 = st.columns(2)
-    with col3:
-        fig_monthly = px.line(x=months, y=purchase_data, title="월별 패션 아이템 구매 패턴", labels={'x': '월', 'y': '구매 수량'},
-                              markers=True)
-        fig_monthly.update_traces(line_color='#FF6B6B', marker_color='#FF6B6B')
-        st.plotly_chart(fig_monthly, use_container_width=True)
-    with col4:
-        categories = list(satisfaction_data.keys())
-        values = list(satisfaction_data.values())
-        fig_radar = go.Figure()
-        fig_radar.add_trace(
-            go.Scatterpolar(r=values, theta=categories, fill='toself', name='만족도', line_color='#4ECDC4'))
-        fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 5])), title="카테고리별 만족도")
-        st.plotly_chart(fig_radar, use_container_width=True)
-
-    st.markdown("### 🌍 최신 패션 트렌드 분석 (Google Trends)")
-    with st.spinner("Google Trends에서 최신 데이터를 가져오는 중..."):
-        trends_df = get_google_trends_data()
-        if not trends_df.empty:
-            st.line_chart(trends_df)
-            st.caption("지난 1년간의 주요 패션 키워드에 대한 관심도 변화입니다.")
-        else:
-            st.warning("트렌드 데이터를 가져오는 데 실패했습니다. 잠시 후 다시 시도해주세요.")
-
-# 4. 옷 입혀보기 AI 페이지
+# 3. 옷 입혀보기 AI 페이지
 elif st.session_state.page == "vton":
+    # ... (옷 입혀보기 AI 페이지 코드는 변경 없음) ...
     st.title("🔎 옷 입혀보기 AI (Virtual Try-On)")
     site_url = "https://huggingface.co/spaces/levihsu/OOTDiffusion"
     st.write(f"아래 링크를 통해 외부 가상 피팅 사이트를 이용할 수 있습니다.")
