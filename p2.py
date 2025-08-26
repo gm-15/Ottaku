@@ -148,7 +148,7 @@ def get_cody_recommendation_with_image(user_info, clothing_info):
 st.title("👕 나의 맞춤 패션 추천")
 
 # 탭 구성
-tab1, tab2, tab3, tab4= st.tabs(["⚙️ 나의 맞춤 정보", "🧠 옷 분석하기", "✨ 코디 추천받기", "🤖 옷 입혀보기 AI"])
+tab1, tab2, tab3, tab4= st.tabs(["⚙️ 나의 맞춤 정보", "🧠 옷 분석하기", "✨ 코디 추천받기", "🔎 옷 입혀보기 AI"])
 
 with tab1:
     st.subheader("체형")
@@ -239,7 +239,7 @@ with tab3:
         st.warning("먼저 '나의 맞춤 정보'를 저장하고 '옷 분석하기'를 완료해주세요.")
 
 with tab4:
-    st.subheader("🤖 옷 입혀보기 AI ")
+    st.subheader("🔎 옷 입혀보기 AI ")
     site_url = "https://huggingface.co/spaces/Kwai-Kolors/Kolors-Virtual-Try-On"
 
     st.subheader(f"삽입된 사이트: {site_url}")
