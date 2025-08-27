@@ -12,7 +12,7 @@ from pytrends.request import TrendReq
 from urllib.parse import quote
 import requests
 from datetime import datetime, timedelta
-import pytz  # 시간대 변환을 위한 라이브러리
+import pytz # 시간대 변환을 위한 라이브러리
 
 # --- 페이지 기본 설정 ---
 st.set_page_config(
@@ -36,7 +36,7 @@ llm_model = genai.GenerativeModel('gemini-1.5-flash')
 
 # --- 1. 기능 함수들 ---
 
-# --- 1.1. 날씨 관련 함수 (get_base_datetime 수정) ---
+# --- 1.1. 날씨 관련 함수 ---
 
 def recommend_clothing(temp):
     """기온에 따라 적절한 옷차림 추천 문구를 반환하는 함수."""
@@ -68,7 +68,7 @@ def get_weather_data(api_key, base_date, base_time, nx, ny):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        st.error(f"API 요청 중 오류가 발생했습니다: {e}")
+        st.sidebar.error(f"API 요청 오류: {e}")
         return None
 
 
@@ -76,7 +76,7 @@ def process_weather_data(data):
     """API 응답 데이터를 DataFrame으로 변환하고 가공하는 함수"""
     if not data or data['response']['header']['resultCode'] != '00':
         result_msg = data.get('response', {}).get('header', {}).get('resultMsg', '알 수 없는 오류')
-        st.error(f"잘못된 응답을 받았습니다: {result_msg}")
+        st.sidebar.error(f"API 응답 오류: {result_msg}")
         return pd.DataFrame()
     items = data['response']['body']['items']['item']
     df = pd.DataFrame(items)
@@ -91,28 +91,23 @@ def process_weather_data(data):
 
 def get_base_datetime():
     """API 요청에 필요한 base_date와 base_time을 한국 시간 기준으로 계산하는 함수"""
-    # ✨ (수정) 한국 시간대(KST)를 기준으로 현재 시간 가져오기
     kst = pytz.timezone('Asia/Seoul')
     now = datetime.now(kst)
 
-    # 기상청 API는 특정 시간에만 데이터를 업데이트함 (2, 5, 8, 11, 14, 17, 20, 23시)
-    # 현재 시간보다 이전의 가장 가까운 업데이트 시간을 찾아야 함
     if now.hour < 2 or (now.hour == 2 and now.minute <= 10):
-        # 새벽 2시 10분 이전이면, 전날 23시 데이터를 사용
         base_dt = now - timedelta(days=1)
         base_hour = 23
     else:
         base_dt = now
         available_times = [2, 5, 8, 11, 14, 17, 20, 23]
-        # 현재 시간보다 작거나 같은 시간 중 가장 큰 시간을 base_hour로 설정
         base_hour = max(t for t in available_times if t <= now.hour)
 
     base_date = base_dt.strftime('%Y%m%d')
     base_time = f"{base_hour:02d}00"
     return base_date, base_time
 
+# --- 1.2. 패션 추천 관련 함수 ---
 
-# --- 1.2. 패션 추천 관련 함수 (기존과 동일) ---
 def recommend_size(height, weight, gender):
     bmi = weight / ((height / 100) ** 2)
     if gender == "남자":
@@ -281,11 +276,81 @@ def make_audio(text_to_speak, filename):
 # --- 2. 사이드바 및 페이지 상태 관리 ---
 st.sidebar.title("나만의 맞춤 패션 추천")
 if st.sidebar.button("🏠 나의 맞춤 패션 추천", use_container_width=True): st.session_state.page = "main"
-if st.sidebar.button("🌤️ 오늘의 날씨", use_container_width=True): st.session_state.page = "weather"
 if st.sidebar.button("👚 나의 옷장", use_container_width=True): st.session_state.page = "closet"
 if st.sidebar.button("🎨 퍼스널 컬러 분석", use_container_width=True): st.session_state.page = "personal_color"
 if st.sidebar.button("📊 패션 데이터 분석", use_container_width=True): st.session_state.page = "analytics"
 if st.sidebar.button("🔎 옷 입혀보기 AI", use_container_width=True): st.session_state.page = "vton"
+
+# --- 사이드바 날씨 기능 ---
+st.sidebar.divider()
+st.sidebar.subheader("🌤️ 오늘의 날씨 및 옷차림 추천")
+
+# --- ✨ (수정) 날짜 범위 설정 ---
+today = datetime.now().date()
+min_date = today
+max_date = today + timedelta(days=2)  # 기상청 단기예보는 모레까지 제공
+
+if 'selected_date' not in st.session_state:
+    st.session_state.selected_date = today
+
+# 날짜가 범위를 벗어나지 않도록 조정
+if st.session_state.selected_date < min_date:
+    st.session_state.selected_date = min_date
+if st.session_state.selected_date > max_date:
+    st.session_state.selected_date = max_date
+
+st.sidebar.caption(f"🗓️ {min_date.strftime('%m월 %d일')} ~ {max_date.strftime('%m월 %d일')} 예보 제공")
+
+col1, col2, col3 = st.sidebar.columns([1, 4, 1])
+if col1.button("◀", use_container_width=True):
+    if st.session_state.selected_date > min_date:
+        st.session_state.selected_date -= timedelta(days=1)
+if col3.button("▶", use_container_width=True):
+    if st.session_state.selected_date < max_date:
+        st.session_state.selected_date += timedelta(days=1)
+
+st.session_state.selected_date = col2.date_input(
+    "날짜 선택",
+    value=st.session_state.selected_date,
+    min_value=min_date,
+    max_value=max_date,
+    label_visibility="collapsed"
+)
+
+locations = {"서울": (60, 127), "부산": (98, 76), "대구": (89, 90), "인천": (55, 124), "광주": (58, 74), "대전": (67, 100),
+             "울산": (102, 84), "세종": (66, 103), "경기": (60, 120), "강원": (73, 134), "충북": (69, 107), "충남": (68, 100),
+             "전북": (63, 89), "전남": (51, 67), "경북": (89, 91), "경남": (91, 77), "제주": (52, 38)}
+selected_location = st.sidebar.selectbox("조회할 지역을 선택하세요", list(locations.keys()))
+
+if st.sidebar.button("날씨 조회하기 🚀", use_container_width=True):
+    with st.spinner('날씨 데이터를 가져오는 중입니다...'):
+        nx, ny = locations[selected_location]
+        base_date, base_time = get_base_datetime() # ✨ (수정) 항상 현재 시간 기준으로 요청
+        weather_json = get_weather_data(kma_api_key, base_date, base_time, nx, ny)
+        if weather_json:
+            df = process_weather_data(weather_json)
+            st.session_state.weather_data = {"location": selected_location, "df": df} if not df.empty else None
+        else:
+            st.session_state.weather_data = None
+
+if 'weather_data' in st.session_state and st.session_state.weather_data:
+    data = st.session_state.weather_data
+    df = data["df"]
+    location = data["location"]
+    selected_date_str = st.session_state.selected_date.strftime('%Y%m%d')
+    today_forecast = df[df['fcstDate'] == selected_date_str]
+
+    if not today_forecast.empty:
+        st.sidebar.success(f"**{location}** 날씨 조회 완료!")
+        latest_data = today_forecast.iloc[0]
+        temp = latest_data.get('TMP', 'N/A')
+        clothing_recommendation = recommend_clothing(temp)
+        st.sidebar.info(f"👕 **옷차림 추천:** {clothing_recommendation}")
+        st.sidebar.metric(label="현재 기온", value=f"{temp}°C")
+        with st.sidebar.expander("상세 예보 보기"):
+            st.dataframe(df)
+    else:
+        st.sidebar.warning(f"{st.session_state.selected_date.strftime('%Y년 %m월 %d일')}의 예보 데이터가 없습니다.")
 
 # --- 페이지 상태 초기화 ---
 if "page" not in st.session_state: st.session_state.page = "main"
@@ -436,41 +501,7 @@ if st.session_state.page == "main":
         else:
             st.warning("먼저 '옷 분석하기'를 완료해주세요.")
 
-# 3.2. 오늘의 날씨 페이지
-elif st.session_state.page == "weather":
-    st.title("🏞️ 기상청 단기예보 조회 서비스")
-    st.write(f"오늘 날짜: {datetime.now().strftime('%Y년 %m월 %d일')}")
-    locations = {"서울": (60, 127), "부산": (98, 76), "대구": (89, 90), "인천": (55, 124), "광주": (58, 74), "대전": (67, 100),
-                 "울산": (102, 84), "세종": (66, 103), "경기": (60, 120), "강원": (73, 134), "충북": (69, 107), "충남": (68, 100),
-                 "전북": (63, 89), "전남": (51, 67), "경북": (89, 91), "경남": (91, 77), "제주": (52, 38)}
-    selected_location = st.selectbox("조회할 지역을 선택하세요", list(locations.keys()))
-    if st.button("날씨 조회하기 🚀", use_container_width=True):
-        with st.spinner('날씨 데이터를 가져오는 중입니다...'):
-            nx, ny = locations[selected_location]
-            base_date, base_time = get_base_datetime()
-            weather_json = get_weather_data(kma_api_key, base_date, base_time, nx, ny)
-            if weather_json:
-                df = process_weather_data(weather_json)
-                if not df.empty:
-                    st.success(f"**{selected_location}** 지역의 날씨 예보입니다. (데이터 기준: {base_date} {base_time})")
-                    latest_data = df.iloc[0]
-                    temp = latest_data.get('TMP', 'N/A');
-                    sky = latest_data.get('SKY_STATUS', 'N/A');
-                    pty = latest_data.get('PTY_STATUS', 'N/A')
-                    pop = latest_data.get('POP', 'N/A');
-                    wsd = latest_data.get('WSD', 'N/A');
-                    reh = latest_data.get('REH', 'N/A')
-                    clothing_recommendation = recommend_clothing(temp)
-                    st.info(f"👕 **오늘의 옷차림 추천:** {clothing_recommendation}")
-                    st.metric(label="현재 기온", value=f"{temp}°C")
-                    col1, col2, col3 = st.columns(3)
-                    col1.metric("하늘 상태", sky);
-                    col2.metric("강수 형태", pty);
-                    col3.metric("강수 확률", f"{pop}%")
-                    col4, col5 = st.columns(2)
-                    col4.metric("풍속", f"{wsd} m/s");
-                    col5.metric("습도", f"{reh}%")
-                    with st.expander("시간대별 상세 예보 보기"): st.dataframe(df)
+# 3.2. (삭제) 오늘의 날씨 페이지는 사이드바로 통합됨
 
 # 3.3. 나의 옷장 페이지
 elif st.session_state.page == "closet":
