@@ -274,7 +274,8 @@ def make_audio(text_to_speak, filename):
 
 
 # --- 2. 사이드바 및 페이지 상태 관리 ---
-st.sidebar.title("나만의 맞춤 패션 추천")
+st.sidebar.title("옷타쿠")
+st.sidebar.text("'옷타쿠'는 '옷'과 '오타쿠'의 합성어로, 옷을 진심으로 사랑하 는 사람들을 위한 AI 기반 퍼스널 스타일리스트입니다.")
 if st.sidebar.button("🏠 나의 맞춤 패션 추천", use_container_width=True): st.session_state.page = "main"
 if st.sidebar.button("👚 나의 옷장", use_container_width=True): st.session_state.page = "closet"
 if st.sidebar.button("🎨 퍼스널 컬러 분석", use_container_width=True): st.session_state.page = "personal_color"
