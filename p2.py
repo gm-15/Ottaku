@@ -566,4 +566,4 @@ elif st.session_state.page == "vton":
     site_url = "https://huggingface.co/spaces/Kwai-Kolors/Kolors-Virtual-Try-On"
     st.write(f"아래 링크를 통해 외부 가상 피팅 사이트를 이용할 수 있습니다.")
     st.markdown(f"**[가상 피팅 사이트로 이동하기]({site_url})**", unsafe_allow_html=True)
-    st.info("⚠️ 외부 사이트는 안정적이지 않을 수 있으며, 로딩에 시간이 걸릴 수 있습니다")
+    st.info("⚠️ 외부 사이트는 안정적이지 않을 수 있으며, 로딩에 시간이 걸릴 수 있습니다.")
