@@ -339,7 +339,7 @@ if st.session_state.page == "main":
             col1, col2 = st.columns(2)
             with col1:
                 st.image(st.session_state.cloth_photo_object, caption="업로드된 옷 이미지", use_container_width=True)
-                if st.button("이미지 삭제", use_container_width=True, key="del_cloth_img"):
+                if st.button("업로드 된 파일을 삭제하고 이미지 삭제", use_container_width=True, key="del_cloth_img"):
                     st.session_state.cloth_photo_object = None
                     st.session_state.analysis_result = None
                     st.rerun()
