@@ -271,7 +271,8 @@ def make_audio(text_to_speak, filename):
 
 
 # --- 2. 사이드바 및 페이지 상태 관리 ---
-st.sidebar.title("나만의 맞춤 패션 추천")
+st.sidebar.title("옷타쿠")
+st.sidebar.text("'옷'과 '오타쿠'의 합성어로, 옷을 사랑하는 사람들을 위한 AI 기반 코디 추천 서비스")
 if st.sidebar.button("🏠 나의 맞춤 패션 추천", use_container_width=True): st.session_state.page = "main"
 if st.sidebar.button("🌤️ 오늘의 날씨", use_container_width=True): st.session_state.page = "weather"
 if st.sidebar.button("👚 나의 옷장", use_container_width=True): st.session_state.page = "closet"
@@ -393,7 +394,19 @@ if st.session_state.page == "main":
 
             if st.session_state.get("recommendation_output"):
                 output = st.session_state.recommendation_output
-                if output.get("audio"): st.audio(output["audio"], autoplay=True)
+                # --- ✨ (수정) 오디오 재생 및 삭제 로직 ---
+                if output.get("audio"):
+                    audio_filepath = output["audio"]
+                    audio_col, button_col = st.columns([4, 1])
+                    with audio_col:
+                        st.audio(audio_filepath, autoplay=True)
+                    with button_col:
+                        if st.button("🔊 음성 삭제", use_container_width=True, key="delete_audio"):
+                            if os.path.exists(audio_filepath):
+                                os.remove(audio_filepath)
+                            st.session_state.recommendation_output["audio"] = None
+                            st.success("음성 파일이 삭제되었습니다.")
+                            st.rerun()
                 st.subheader("AI 스타일리스트의 추천");
                 st.markdown(output["text"], unsafe_allow_html=True)
                 st.subheader("🛍️ 추천 아이템 쇼핑하기")
