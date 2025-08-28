@@ -1,6 +1,5 @@
 # 👕 옷타쿠 (Ottaku) - AI Personal Stylist
 
-![Ottaku Banner](https://placehold.co/1200x300/E0F7FA/006064?text=%EC%98%B7%ED%83%80%EC%BF%A0%20(Ottaku)&font=sans)
 
 **"옷을 사랑하는 당신을 위한 AI 기반 퍼스널 스타일리스트"**
 
